@@ -1,0 +1,9 @@
+{
+  "name": "melbourne-visa-calendar-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bounded read-only calendar observation and uncertainty-aware reports",
+  "scripts": { "start": "node monitor.cjs", "test": "node --test test.cjs monitor.test.cjs", "report": "node monitor.cjs --report" },
+  "engines": { "node": ">=22" },
+  "dependencies": { "playwright": "1.64.0" }
+}

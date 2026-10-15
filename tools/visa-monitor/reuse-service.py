@@ -107,7 +107,7 @@ def main():
     with (base / 'supervisor.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         env = {k: v for k, v in os.environ.items() if k in ['PATH', 'HOME', 'LANG', 'LC_ALL', 'TMPDIR', 'LD_LIBRARY_PATH', 'SSL_CERT_FILE', 'SSL_CERT_DIR']}
-        env.update({'PLAYWRIGHT_BROWSERS_PATH': str(base / 'browsers'), 'NODE_OPTIONS': '--max-old-space-size=64'})
+        env.update({'PLAYWRIGHT_BROWSERS_PATH': str(base / 'browsers'), 'NODE_OPTIONS': '--max-old-space-size=64', 'LOW_MEMORY_BROWSER': 'true'})
         if args.mode == 'setup':
             guarded(['npm', 'ci', '--prefix', str(base), '--cache', str(base / 'npm-cache'), '--ignore-scripts', '--no-audit', '--no-fund'], env, base / 'setup.log', base / 'setup-guard.json', 240)
             result = guarded(['node', str(base / 'node_modules/playwright/cli.js'), 'install', 'chromium', '--only-shell'], env, base / 'setup.log', base / 'setup-guard.json', 300)

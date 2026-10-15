@@ -1,5 +1,36 @@
 # Render 部署与运行
 
+## 复用现有 7 美元服务（当前选择）
+
+用户选择复用现有 human-router-api，服务为 Python、0.5 CPU / 512 MB，已有 1 GB 磁盘挂载 /var/data。此次不创建新服务或新增磁盘，不暂停原 API。
+
+2026-10-16 的只读检查：实例当时总内存使用约 236–247 MiB、磁盘可用约 953 MiB；Node v24.14.1 和主要 Chromium 系统库已存在，但未安装浏览器。单次 HTTP 请求返回 200，只有页面标题，没有日期可预约状态，不能把这个结果当作无号。
+
+`reuse-service.py` 在 /var/data/visa-monitor 独立安装运行环境；启动的子进程降低调度优先级，复用现有资源。资源保护按 cgroup 中匿名内存加内核内存占上限 78% 停止新任务；运行前需额外 48 MiB 余量。每 10 秒检查原 API 的 /health，两次失败停止新任务。保护检查通常每 0.2 秒一次，不能提供硬隔离或保证完全不影响原 API。
+
+程序只停止自己创建的进程组。原 API 的启动命令、应用代码、数据库、密钥和服务配置不变。子进程只继承必要运行环境变量，不传递原 API 的业务密钥。
+
+运行命令：
+
+```sh
+python /var/data/visa-monitor/reuse-service.py setup
+python /var/data/visa-monitor/reuse-service.py smoke
+```
+
+单次检查有效且资源充足后，才启动正式运行：
+
+```sh
+nohup python /var/data/visa-monitor/reuse-service.py run > /var/data/visa-monitor/supervisor.log 2>&1 < /dev/null &
+```
+
+采样状态与报告位于 /var/data/visa-monitor/run；保护程序状态保存为 run-guard.json。到期停止监测子进程，原 API 保持运行；不可暂停整个现有服务。
+
+后台进程可在 Shell 断开后继续，但 Render 重启或重新部署可能中断它；原始截止时间保存在磁盘，可恢复采样，不能补回中断期间的数据。没有宣称能无条件保证 24 小时不间断。
+
+保护程序的 4 项离线测试可用 `python3 -B reuse_service_test.py` 运行。子进程终止行为实测，降低调度优先级的调用在本机测试中模拟；服务器端另行验证。
+
+以下新建 Worker 的配置保留为可选方案，不是当前选择。
+
 该文件夹为独立 Docker 应用。仓库部署位置为 `tools/visa-monitor`，使用独立分支 `codex/visa-monitor-2026-11`。现有网站不需要合并或重新部署。
 
 ## 建议配置

@@ -163,7 +163,8 @@ async function run(c,{once=false}={}) {
     deadlineTimer=setTimeout(()=>controller.abort(),Math.max(1,Date.parse(s.endAt)-Date.now()));
     const {chromium}=require('playwright');
     // Keep the Chromium sandbox enabled; fail rather than adding --no-sandbox.
-    browser=await chromium.launch({headless:true,chromiumSandbox:true,executablePath:process.env.CHROMIUM_EXECUTABLE_PATH||undefined});
+    browser=await chromium.launch({headless:true,chromiumSandbox:true,executablePath:process.env.CHROMIUM_EXECUTABLE_PATH||undefined,
+      args:process.env.LOW_MEMORY_BROWSER==='true'?['--js-flags=--max-old-space-size=48']:[]});
     while(!controller.signal.aborted && Date.now()<Date.parse(s.endAt)){
       if(s.attempts>=Math.ceil(s.durationMs/s.intervalMs)){
         await delay(Math.max(1,Date.parse(s.endAt)-Date.now()),undefined,{signal:controller.signal});

@@ -117,7 +117,16 @@ def main():
             command = ['node', str(base / 'monitor.cjs')]
             if args.mode == 'smoke':
                 command.append('--once')
-            result = guarded(command, env, base / (args.mode + '.log'), base / (args.mode + '-guard.json'), 60 if args.mode == 'smoke' else 86520)
+            try:
+                result = guarded(command, env, base / (args.mode + '.log'), base / (args.mode + '-guard.json'), 60 if args.mode == 'smoke' else 86520)
+            except RuntimeError:
+                guard_file = base / (args.mode + '-guard.json')
+                reason = json.loads(guard_file.read_text()).get('reason') if guard_file.exists() else None
+                if reason and reason != 'process_exited' and (state_dir / 'state.json').exists():
+                    report_env = dict(env, MONITOR_STOP_REASON=reason)
+                    # No browser launch: update only this monitor's state and reports.
+                    subprocess.run(['node', '-e', 'const m=require(process.argv[1]);const c=m.config();const s=m.loadState(c);s.status="stopped_"+process.env.MONITOR_STOP_REASON;s.stopReason=process.env.MONITOR_STOP_REASON;m.persist(c,s);', str(base / 'monitor.cjs')], env=report_env, check=True, timeout=10)
+                raise
         print(json.dumps(result, indent=2), flush=True)
 
 
